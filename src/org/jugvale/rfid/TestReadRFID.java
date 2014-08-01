@@ -59,5 +59,4 @@ public class TestReadRFID {
 		System.out.println(reader.waitAndRead(p));
 
 	}
-
 }

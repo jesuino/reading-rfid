@@ -3,9 +3,8 @@ package org.jugvale.rfid.ui;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.concurrent.ExecutionException;
+import java.util.function.Consumer;
 
-import javafx.beans.property.SimpleStringProperty;
-import javafx.beans.property.StringProperty;
 import javafx.concurrent.Task;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListView;
@@ -15,26 +14,43 @@ import javafx.scene.layout.StackPane;
 
 import org.jugvale.rfid.LinuxFTDISerialReader;
 
+/**
+ * @author william
+ *
+ */
 public class FTDIReaderPane extends TitledPane {
 
 	LinuxFTDISerialReader reader = new LinuxFTDISerialReader();
 	ListView<Path> listDevices;
-
+	
 	/**
-	 * Contains the read RFID Tag
+	 * To be invoked when we read the RFID
 	 */
-	public StringProperty rfidTagProperty;
-
-	/**
-	 * CAny error will be on this message
-	 */
-	public StringProperty errorWhenReadingProperty;
+	Consumer<String> onRead;
+	Consumer<String> onError;
 
 	private Path selectedDevice;
 
+	
 	public FTDIReaderPane() {
+		this(null, null);
+	}
+	
+	public FTDIReaderPane(Consumer<String> onRead, Consumer<String> onError) {
+		super();
+		this.onRead = onRead;
+		this.onError = onError;
 		settings();
 		initComponent();
+	}
+
+	public void setOnRead(Consumer<String> onRead) {
+		this.onRead = onRead;
+	}
+
+
+	public void setOnError(Consumer<String> onError) {
+		this.onError = onError;
 	}
 
 	/**
@@ -54,7 +70,7 @@ public class FTDIReaderPane extends TitledPane {
 			setVisible(true);
 		} catch (Exception e) {
 			e.printStackTrace();
-			setErrorMessage();
+			fail(LinuxFTDISerialReader.DEFAULT_ERROR_MESSAGE);
 		}
 	}
 
@@ -76,8 +92,6 @@ public class FTDIReaderPane extends TitledPane {
 		root.getChildren().addAll(listDevices, lblPassCard);
 		lblPassCard.visibleProperty().bind(listDevices.visibleProperty().not());
 		this.setContent(root);
-		rfidTagProperty = new SimpleStringProperty();
-		errorWhenReadingProperty = new SimpleStringProperty();
 	}
 
 	private void newDeviceSelectedAction(MouseEvent e) {
@@ -107,26 +121,34 @@ public class FTDIReaderPane extends TitledPane {
 			@Override
 			protected void succeeded() {
 				try {
-					rfidTagProperty.setValue(this.get());
-					errorWhenReadingProperty.setValue("");
+					success(this.get());
 				} catch (InterruptedException | ExecutionException e) {
 					e.printStackTrace();
 				}
-				// will dispose the pane no matter what
 				setVisible(false);
 			}
 
 			@Override
 			protected void failed() {
-				setErrorMessage();
+				fail(LinuxFTDISerialReader.DEFAULT_ERROR_MESSAGE);
 				setVisible(false);
 				selectedDevice = null;
 			}
 		}).start();
 	}
-
-	private void setErrorMessage() {
-		errorWhenReadingProperty
-				.setValue(LinuxFTDISerialReader.DEFAULT_ERROR_MESSAGE);
+	
+	private void success(String value) {
+		if(onRead == null) {
+			throw new Error("You must set an onRead funcion");
+		}
+		onRead.accept(value);
+	}
+	
+	private void fail(String value) {
+		if(onError == null) {
+			throw new Error("You must set an onError funcion");
+		}
+		onError.accept(value);
+		
 	}
 }

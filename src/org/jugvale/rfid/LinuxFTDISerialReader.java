@@ -6,6 +6,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.List;
+import java.util.Scanner;
 import java.util.stream.Collectors;
 
 /**
@@ -50,20 +51,17 @@ public class LinuxFTDISerialReader {
 	 * @throws IOException
 	 */
 	public String waitAndRead(Path device) throws IOException {
-		if(device == null || !Files.exists(device)){
+		if (device == null || !Files.exists(device)) {
 			throw new IOException("Device should not be null!");
 		}
-		while (true) {
-			try {
-				String value = Files.lines(device).filter(s -> s.length() > 0)
-						.map(s -> s.substring(1)).findFirst()
-						.orElseThrow(() -> new IOException(DEFAULT_ERROR_MESSAGE));
-
-				if (value != null && !value.trim().isEmpty())
-					return value;
-			} catch (IOException e) {
-				throw new IOException(DEFAULT_ERROR_MESSAGE, e);
-			}
+		Scanner scanner = new Scanner(device);
+		String rfid = null;
+		while (scanner.hasNextLine()) {
+			rfid = scanner.nextLine();
+			if (rfid != null && !rfid.trim().isEmpty())
+				break;
 		}
+		scanner.close();
+		return rfid.substring(1);
 	}
 }

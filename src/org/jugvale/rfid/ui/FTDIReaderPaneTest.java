@@ -28,28 +28,34 @@ public class FTDIReaderPaneTest extends Application {
 		lblReadTag.setStyle("-fx-font-size: 20px");
 		lblError.setStyle("-fx-font-size: 10px; -fx-text-fill: red;");
 		lblError.setWrapText(true);
-		lblError.textProperty().bind(rfidPane.errorWhenReadingProperty);
 		vbTag.getChildren().addAll(lblReadTag, btnRead, lblError);
-		lblReadTag.textProperty().bind(rfidPane.rfidTagProperty);
 		vbTag.visibleProperty().bind(rfidPane.visibleProperty().not());
 		s.setScene(new Scene(new StackPane(rfidPane, vbTag)));
 		s.show();
 		s.setWidth(600);
 		s.setHeight(400);
+		
+		// a little animation for the error
+		ScaleTransition t = new ScaleTransition(new Duration(500));
+		t.setNode(lblError);
+		t.setAutoReverse(true);
+		t.setByX(0.1);
+		t.setByY(0.1);
+		t.setCycleCount(2);
 
 		btnRead.setOnAction(e -> {
-				rfidPane.askForDeviceAndReadTag();
+			rfidPane.askForDeviceAndReadTag();
+		});
+
+		rfidPane.setOnRead(rfid -> {
+			lblError.setText("");
+			lblReadTag.setText(rfid);
 		});
 		
-		lblError.textProperty().addListener((obs, old, nv) -> {
-			ScaleTransition t = new ScaleTransition(new Duration(500));
-			t.setNode(lblError);
-			t.setAutoReverse(true);
-			t.setByX(0.1);
-			t.setByY(0.1);
-			t.setCycleCount(2);
+		rfidPane.setOnError(error ->{
+			lblReadTag.setText("");
+			lblError.setText(error);
 			t.play();
-			
 		});
 	}
 }
